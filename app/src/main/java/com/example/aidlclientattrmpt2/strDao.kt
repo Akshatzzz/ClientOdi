@@ -8,8 +8,8 @@ import androidx.room.Query
 @Dao
 interface strDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun addUser(mystr:myString)
+    suspend fun insert(str:StringDataClass)
 
     @Query("SELECT * from test_table")
-    suspend fun select():List<myString>
+    suspend fun select():List<StringDataClass>
 }

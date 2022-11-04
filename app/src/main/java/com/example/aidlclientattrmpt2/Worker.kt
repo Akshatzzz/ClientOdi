@@ -12,23 +12,26 @@ import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import androidx.work.Worker
 import androidx.work.WorkerParameters
-import com.example.aidlserverattempt2.IMyAidlInterface
+import com.example.aidlserverattempt2.IAidlInterface
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 
-class MyWorker(context: Context, workerParameters: WorkerParameters) :
+class Worker(context: Context, workerParameters: WorkerParameters) :
     Worker(context, workerParameters) {
-    var iMyAidlInterface: IMyAidlInterface? = null
+    //Initialized relevant objects
+    var iMyAidlInterface: IAidlInterface? = null
     lateinit var myDb:stringDb
 
+    //the str will be set to the received string which we'll further insert to our database
     companion object {
         var str: String? = null
     }
 
+    //The ServiceConnection object will let us decide the steps to process when service is connected
     private val mConnection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
-            iMyAidlInterface = IMyAidlInterface.Stub.asInterface(service)
+            iMyAidlInterface = IAidlInterface.Stub.asInterface(service)
             Log.d("SHOW", "Remote Service Connected")
         }
 
@@ -38,31 +41,37 @@ class MyWorker(context: Context, workerParameters: WorkerParameters) :
 
     }
 
+    //This method will be called every 15 minutes, which can be changed accordingly in future
     override fun doWork(): Result {
         myDb = stringDb.getDatabase(applicationContext)
         Log.d("SHOW2", "WORKER CALLED")
+
+        //this intent should have same package as that of the aidl interface in the service application
         val intent = Intent("AIDLService")
         intent.setPackage("com.example.aidlserverattempt2")
 
+        //this will be true if the service is connected else will be false
         val bool =
             applicationContext.bindService(intent, mConnection, AppCompatActivity.BIND_AUTO_CREATE)
         Log.d("SHOW", "bindservice called")
 
 
         if (bool) {
+            //delay of 300ms is provided cause it takes sometime for the service to get connected
             Handler(Looper.getMainLooper()).postDelayed({
 
                 try {
-                    str = iMyAidlInterface!!.color
+                    // sendStr() will return the sent string from the service app
+                    str = iMyAidlInterface!!.sendStr()
                     Log.d("SHOW", "${str}")
 
 
                 } catch (e: RemoteException) {
 
                 }
-                val myEntry = myString(0, str)
+                val Entry = StringDataClass(0, str)
                 GlobalScope.launch(Dispatchers.IO) {
-                    myDb.dao().addUser(myEntry)
+                    myDb.dao().insert(Entry)
                 }
 
             }, 300L)
@@ -71,6 +80,7 @@ class MyWorker(context: Context, workerParameters: WorkerParameters) :
             return Result.success()
         }
         else{
+            //if service doesn't get connected this will be returned
             return Result.failure()
         }
 
