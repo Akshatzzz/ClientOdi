@@ -62,7 +62,7 @@ class Worker(context: Context, workerParameters: WorkerParameters) :
 
                 try {
                     // sendStr() will return the sent string from the service app
-                    str = iMyAidlInterface!!.sendStr()
+                   str = iMyAidlInterface!!.sendStr()
                     Log.d("SHOW", "${str}")
 
 
